@@ -1737,6 +1737,8 @@ class HunkLoadSegFile:
 class Relocate:
     """Relocate a BinImage to given addresses"""
 
+    DEF_IMAGE_BASE = 0x21F000
+
     def __init__(self, bin_img):
         self.bin_img = bin_img
 
@@ -1861,10 +1863,8 @@ def load_file(li, neflags, format):
     bi = bf.load_image_fobj(fobj)
 
     rel = Relocate(bi)
-    addrs = rel.get_seq_addrs(0x21F000)
+    addrs = rel.get_seq_addrs(0)
     datas = rel.relocate(addrs)
-
-    idaapi.add_entry(addrs[0], addrs[0], "start", 1)
 
     for seg in bi.get_segments():
         offset = addrs[seg.id]
@@ -1884,6 +1884,9 @@ def load_file(li, neflags, format):
 
         idaapi.mem2base(str(datas[seg.id]), offset, seg.data_offset)
         idaapi.add_segm(0, offset, offset + size, 'SEG_%02d' % seg.id, seg.get_type_name())
+
+    idaapi.rebase_program(Relocate.DEF_IMAGE_BASE, idaapi.MSF_FIXONCE)
+    idaapi.add_entry(Relocate.DEF_IMAGE_BASE, Relocate.DEF_IMAGE_BASE, "start", 1)
 
     return 1
 
